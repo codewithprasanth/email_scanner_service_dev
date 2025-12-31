@@ -33,10 +33,21 @@ def push_to_sqs_queue(work_id: str, queue_url: str) -> bool:
         logger.debug(f"Message payload: {message_body}")
         logger.debug(f"Sending message to SQS queue: {queue_url}")
         
-        response = sqs_client.send_message(
-            QueueUrl=queue_url,
-            MessageBody=json.dumps(message_body)
-        )
+        # Check if queue is FIFO (ends with .fifo)
+        is_fifo = queue_url.endswith('.fifo')
+        
+        send_params = {
+            'QueueUrl': queue_url,
+            'MessageBody': json.dumps(message_body)
+        }
+        
+        # Add FIFO-specific parameters if needed
+        if is_fifo:
+            send_params['MessageGroupId'] = work_id  # Required for FIFO
+            send_params['MessageDeduplicationId'] = work_id  # Prevents duplicates
+            logger.debug(f"FIFO queue detected - using MessageGroupId={work_id}")
+        
+        response = sqs_client.send_message(**send_params)
         
         logger.debug(f"Full SQS response: {response}")
         logger.info(f"✓ SQS: work_id={work_id}, msg_id={response.get('MessageId')}")
