@@ -1,0 +1,5 @@
+venv/
+.env
+localstack_data/
+mlflow.db
+__pycache__/

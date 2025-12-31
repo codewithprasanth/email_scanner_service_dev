@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  invoice-processor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: invoice-processor
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+
+      # Graph API Configuration
+      - GRAPH_CLIENT_ID=${GRAPH_CLIENT_ID}
+      - GRAPH_CLIENT_SECRET=${GRAPH_CLIENT_SECRET}
+      - GRAPH_TENANT_ID=${GRAPH_TENANT_ID}
+      - GRAPH_API_ENDPOINT=${GRAPH_API_ENDPOINT:-https://graph.microsoft.com/v1.0}
+      
+      # Main Database Configuration (Hosted)
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      
+      # Tenant Database Configuration (Hosted)
+      - TENANT_DB_HOST=${TENANT_DB_HOST}
+      - TENANT_DB_PORT=${TENANT_DB_PORT:-5432}
+      - TENANT_DB_NAME=${TENANT_DB_NAME}
+      - TENANT_DB_USER=${TENANT_DB_USER}
+      - TENANT_DB_PASSWORD=${TENANT_DB_PASSWORD}
+      
+      # AWS Configuration (LocalStack - Hosted)
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-test}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-test}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}
+      
+      # S3 Configuration
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-sprintap-guidant-dev}
+      
+      # SQS Configuration
+      - SQS_QUEUE_NAME=${SQS_QUEUE_NAME:-sprintap-invoice-processing-dev.fifo}
+      - OUTPUT_QUEUE_NAME=${OUTPUT_QUEUE_NAME}
+      - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-5}
+    
+    volumes:
+      # Mount logs directory for persistence
+      - ./logs:/app/logs
+      # Optional: mount config if you have external config files
+      # - ./config:/app/config:ro
+    
+    networks:
+      - invoice-network
+    
+    # Depends on external services being available
+    # Since DB and LocalStack are hosted, we use external network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+networks:
+  invoice-network:
+    driver: bridge
+    name: invoice-processor-network

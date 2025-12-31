@@ -1,0 +1,9 @@
+msal
+requests
+psycopg2-binary
+python-dotenv
+uuid
+schedule
+boto3
+fastapi
+uvicorn[standard]
